@@ -1,0 +1,54 @@
+#!/bin/tcsh -f
+
+if !( "$?0" ) then
+  echo 'You may only run this script by explicitly calling its file.'
+  exit -1
+endif
+
+alias function 'set argv = ( \!* ) ; source "$0"'
+( exit !( "$?main" ) ) && goto "$1" && shift
+
+set main
+set followers = "`function followers "\""$1"\""`"
+set following = "`function following "\""$1"\""`"
+
+set count = 1
+while ( "$count" <= "$#following" )
+  function verify "$following[$count]"
+  @ count = "$count" + 1
+end
+exit
+
+followers:
+set count = 1
+while ( 1 )
+  set ret = "`wget -O - 'https://github.com/$1?tab=followers&page=$count' | grep -o '/users/.*/hovercard' | uniq | sed 's/\/users\///;s/\/hovercard//'`"
+
+  if ( "$ret" == "" ) exit
+
+  foreach user ( $ret )
+    echo "$user"
+  end
+  @ count = "$count" + 1
+end
+
+following:
+set count = 1
+while ( 1 )
+  set ret = "`wget -O - 'https://github.com/$1?tab=following&page=$count' | grep -o '/users/.*/hovercard' | uniq | sed 's/\/users\///;s/\/hovercard//'`"
+
+  if ( "$ret" == "" ) exit
+
+  foreach user ( $ret )
+    echo "$user"
+  end
+  @ count = "$count" + 1
+end
+
+verify:
+foreach user ( $followers )
+  if ( "$user" == "$1" ) exit
+end
+
+echo "$1 doesn't follow you back."
+exit 1
