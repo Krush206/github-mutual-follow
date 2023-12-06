@@ -28,41 +28,42 @@
 # OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
 # DAMAGE.
 
-if !( "$?0" ) then
+if ( ! "$?0" ) then
   echo 'You may only run this script by explicitly calling its file.'
   exit -1
 endif
 
-alias function 'set argv = ( \!* ) ; source "$0"'
-( exit !( "$?main" ) ) && goto "$1" && shift
+if ( ! "$?main" ) then
+  if ( "$1" == ) then
+    echo 'Enter a username to verify.'
+    exit -1
+  endif
+  alias function 'set argv = ( \!* ) ; source "$main"'
 
-if ( "$1" == "" ) then
-  echo 'Enter a username to verify.'
-  exit -1
-end
+  set main = "$0"
+  set followers = "`function listing '$1' followers`"
+  set following = "`function listing '$1' following`"
 
-set main
-set followers = "`function listing "\""$1"\"" followers`"
-set following = "`function listing "\""$1"\"" following`"
-
-set count = 1
-while ( "$count" <= "$#following" )
-  ( function verify "$following[$count]" )
-  @ count = "$count" + 1
-end
-exit
+  @ count = ( 1 )
+  while ( "$count" <= "$#following" )
+    ( function verify "$following[$count]" )
+    @ count++
+  end
+  exit
+endif
+goto "$1" ; shift
 
 listing:
-set count = 1
+@ count = ( 1 )
 while ( 1 )
   set ret = "`wget -O - 'https://github.com/$1?tab=$2&page=$count' | grep -o '/users/.*/hovercard' | uniq | sed 's/\/users\///;s/\/hovercard//'`"
 
-  if ( "$ret" == "" ) exit
+  if ( "$ret" == ) exit
 
   foreach user ( $ret )
     echo "$user"
   end
-  @ count = "$count" + 1
+  @ count++
 end
 
 verify:
